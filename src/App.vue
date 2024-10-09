@@ -117,17 +117,19 @@
     </div>
 
     <!-- Confirmation Modal -->
-    <!-- Confirmation Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
         <h4>Confirm Deletion</h4>
         <p>Are you sure you want to delete this participant?</p>
-        <button @click="deleteParticipant" class="btn btn-danger">
-          Delete
-        </button>
-        <button @click="cancelDeletion" class="btn btn-secondary">
-          Cancel
-        </button>
+        <div class="button-container">
+          <!-- Доданий контейнер для кнопок -->
+          <button @click="deleteParticipant" class="btn btn-danger">
+            Delete
+          </button>
+          <button @click="cancelDeletion" class="btn btn-secondary">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -288,6 +290,11 @@ export default defineComponent({
   margin: 0 5px; /* Невеликий відступ між кнопками */
 }
 
+.modal-content .button-container {
+  display: flex;
+  justify-content: center; /* Центруємо кнопки */
+  margin-top: 20px; /* Відступ зверху для кнопок */
+}
 .lottery-app {
   display: grid;
   grid-template-columns: 1fr;
