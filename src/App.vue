@@ -1,22 +1,21 @@
 <template>
   <div class="lottery-app">
-    <!-- Блок переможців -->
+    <!-- Winners Block -->
     <div class="card">
-      <div class="winner-tags gray-border d-flex">
-        <span
-          v-for="(winner, index) in winners"
-          :key="index"
-          class="badge blue d-flex align-items-center"
-        >
-          {{ winner.name }}
-          <button
-            @click="removeWinner(index)"
-            class="btn btn-sm btn-danger ms-2"
+      <div class="d-flex">
+        <div class="winner-tags gray-border">
+          <span
+            v-for="(winner, index) in winners"
+            :key="index"
+            class="badge blue"
           >
-            &times;
-          </button>
-        </span>
-        <span class="badge">Winners</span>
+            {{ winner.name }}
+            <button @click="removeWinner(index)" class="btn btn-sm btn-danger">
+              &times;
+            </button>
+          </span>
+          <span class="badge">Winners</span>
+        </div>
       </div>
       <button
         class="btn btn-primary mt-2"
@@ -27,12 +26,12 @@
       </button>
     </div>
 
-    <!-- Форма реєстрації -->
+    <!-- Registration Form -->
     <div class="card">
       <h3>REGISTER FORM</h3>
       <p>Please fill in all the fields.</p>
       <form @submit.prevent="registerParticipant" novalidate>
-        <div class="form-group mb-3">
+        <div class="form-group">
           <label>Name</label>
           <input
             v-model="newParticipant.name"
@@ -42,9 +41,9 @@
             :class="{ 'is-invalid': nameError }"
             required
           />
-          <div class="invalid-feedback">{{ nameError }}</div>
+          <div class="text-danger" v-if="nameError">{{ nameError }}</div>
         </div>
-        <div class="form-group mb-3">
+        <div class="form-group">
           <label>Date of Birth</label>
           <input
             v-model="newParticipant.dateOfBirth"
@@ -54,9 +53,9 @@
             :class="{ 'is-invalid': dateError }"
             required
           />
-          <div class="invalid-feedback">{{ dateError }}</div>
+          <div class="text-danger" v-if="dateError">{{ dateError }}</div>
         </div>
-        <div class="form-group mb-3">
+        <div class="form-group">
           <label>Email</label>
           <input
             v-model="newParticipant.email"
@@ -66,9 +65,9 @@
             :class="{ 'is-invalid': emailError }"
             required
           />
-          <div class="invalid-feedback">{{ emailError }}</div>
+          <div class="text-danger" v-if="emailError">{{ emailError }}</div>
         </div>
-        <div class="form-group mb-3">
+        <div class="form-group">
           <label>Phone number</label>
           <input
             v-model="newParticipant.phoneNumber"
@@ -78,16 +77,16 @@
             :class="{ 'is-invalid': phoneError }"
             required
           />
-          <div class="invalid-feedback">{{ phoneError }}</div>
+          <div class="text-danger" v-if="phoneError">{{ phoneError }}</div>
         </div>
         <button type="submit" class="btn btn-primary">Save</button>
       </form>
     </div>
 
-    <!-- Таблиця учасників -->
+    <!-- Participants Table -->
     <div class="card">
       <table class="table table-striped">
-        <thead class="table-light">
+        <thead>
           <tr>
             <th>#</th>
             <th>Name</th>
@@ -107,7 +106,7 @@
             <td class="d-flex justify-content-center align-items-center">
               <button
                 @click="removeParticipant(index)"
-                class="btn btn-danger btn-sm delete-btn"
+                class="btn btn-danger btn-sm"
               >
                 &times;
               </button>
@@ -137,7 +136,6 @@ export default defineComponent({
 
     const participants = ref<Participant[]>([]);
     const winners = ref<Participant[]>([]);
-
     const nameError = ref("");
     const dateError = ref("");
     const emailError = ref("");
@@ -150,13 +148,13 @@ export default defineComponent({
       }
     });
 
-    const saveParticipantsToLocalStorage = () => {
-      localStorage.setItem("participants", JSON.stringify(participants.value));
-    };
-
     const removeParticipant = (index: number) => {
       participants.value.splice(index, 1);
       saveParticipantsToLocalStorage();
+    };
+
+    const saveParticipantsToLocalStorage = () => {
+      localStorage.setItem("participants", JSON.stringify(participants.value));
     };
 
     const registerParticipant = () => {
@@ -180,12 +178,10 @@ export default defineComponent({
       }
 
       participants.value.push({ ...newParticipant.value });
-      Object.assign(newParticipant.value, {
-        name: "",
-        dateOfBirth: "",
-        email: "",
-        phoneNumber: "",
-      });
+      newParticipant.value.name = "";
+      newParticipant.value.dateOfBirth = "";
+      newParticipant.value.email = "";
+      newParticipant.value.phoneNumber = "";
 
       saveParticipantsToLocalStorage();
     };
@@ -195,14 +191,18 @@ export default defineComponent({
         const randomIndex = Math.floor(
           Math.random() * participants.value.length
         );
-        const winner = participants.value.splice(randomIndex, 1)[0];
+        const winner = participants.value[randomIndex];
         winners.value.push(winner);
+        participants.value.splice(randomIndex, 1);
+
         saveParticipantsToLocalStorage();
       }
     };
 
     const removeWinner = (index: number) => {
-      participants.value.push(winners.value.splice(index, 1)[0]);
+      participants.value.push(winners.value[index]);
+      winners.value.splice(index, 1);
+
       saveParticipantsToLocalStorage();
     };
 
@@ -225,6 +225,10 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/** {
+  border: solid green 1px;
+}*/
+
 .lottery-app {
   display: grid;
   grid-template-columns: 1fr;
@@ -237,8 +241,13 @@ export default defineComponent({
   border: 1px solid #dee2e6;
   border-radius: 8px;
   background-color: #f8f9fa;
-  padding: 1.5rem;
+  padding: 3%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.d-flex {
+  display: flex;
+  flex-direction: column;
 }
 
 .winner-tags {
@@ -247,35 +256,55 @@ export default defineComponent({
   gap: 10px;
 }
 
+.winner-tags .badge {
+  display: flex;
+  color: black;
+  height: 35px;
+  align-items: center;
+  gap: 5px;
+  padding: 10px;
+  font-size: 1rem;
+}
+
 .blue {
   background-color: rgba(13, 110, 253, 0.5);
 }
 
+.winner-tags button {
+  margin-left: 2px;
+  margin-top: 1px;
+}
+
 .gray-border {
-  border: 1px solid gray;
+  border: solid gray 1px;
   border-radius: 10px;
   padding: 10px;
 }
 
-.invalid-feedback {
-  display: block;
+form div {
+  margin-bottom: 10px;
 }
 
-.table-light th {
+.text-danger {
+  color: red;
+  font-size: 0.875rem;
+}
+
+table {
+  width: 100%;
+}
+
+thead {
   background-color: #e9ecef;
 }
 
-/* .delete-btn {
-  margin-bottom: 0px; 
-}
- .delete-btn {
-  padding-bottom: 0px; 
+th,
+td {
+  padding: 8px;
+  text-align: center;
 }
 
 button {
-  margin-top: 0px;
-} */
-.delete-btn {
-  padding-bottom: 0px;
+  margin-top: 10px;
 }
 </style>
