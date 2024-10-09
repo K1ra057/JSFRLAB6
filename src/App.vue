@@ -93,7 +93,7 @@
             <th>Date of Birth</th>
             <th>Email</th>
             <th>Phone number</th>
-            <th>Action</th>
+            <th>Delete Participant</th>
           </tr>
         </thead>
         <tbody>
@@ -105,7 +105,7 @@
             <td>{{ participant.phoneNumber }}</td>
             <td class="d-flex justify-content-center align-items-center">
               <button
-                @click="removeParticipant(index)"
+                @click="confirmRemoveParticipant(index)"
                 class="btn btn-danger btn-sm"
               >
                 &times;
@@ -114,6 +114,21 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <!-- Confirmation Modal -->
+    <div v-if="showModal" class="modal">
+      <div class="modal-content">
+        <h4>Confirm Deletion</h4>
+        <p>Are you sure you want to delete this participant?</p>
+        <button @click="deleteParticipant" class="btn btn-danger">
+          Delete
+        </button>
+        <button @click="cancelDeletion" class="btn btn-secondary">
+          Cancel
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -140,6 +155,8 @@ export default defineComponent({
     const dateError = ref("");
     const emailError = ref("");
     const phoneError = ref("");
+    const showModal = ref(false);
+    const participantToDelete = ref<number | null>(null);
 
     onMounted(() => {
       const storedParticipants = localStorage.getItem("participants");
@@ -148,9 +165,23 @@ export default defineComponent({
       }
     });
 
-    const removeParticipant = (index: number) => {
-      participants.value.splice(index, 1);
-      saveParticipantsToLocalStorage();
+    const confirmRemoveParticipant = (index: number) => {
+      participantToDelete.value = index;
+      showModal.value = true;
+    };
+
+    const deleteParticipant = () => {
+      if (participantToDelete.value !== null) {
+        participants.value.splice(participantToDelete.value, 1);
+        participantToDelete.value = null;
+        showModal.value = false;
+        saveParticipantsToLocalStorage();
+      }
+    };
+
+    const cancelDeletion = () => {
+      showModal.value = false;
+      participantToDelete.value = null;
     };
 
     const saveParticipantsToLocalStorage = () => {
@@ -215,10 +246,13 @@ export default defineComponent({
       emailError,
       phoneError,
       today,
+      showModal,
+      confirmRemoveParticipant,
+      deleteParticipant,
+      cancelDeletion,
       registerParticipant,
       selectWinner,
       removeWinner,
-      removeParticipant,
     };
   },
 });
@@ -228,6 +262,31 @@ export default defineComponent({
 /** {
   border: solid green 1px;
 }*/
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 300px; /* Додайте ширину модального вікна */
+  text-align: center; /* Центруємо текст */
+}
+
+.modal-content button {
+  width: 120px; /* Фіксована ширина кнопок */
+  margin: 0 5px; /* Невеликий відступ між кнопками */
+}
 
 .lottery-app {
   display: grid;
