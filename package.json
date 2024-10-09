@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prettier": "prettier --write .",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
+    "format": "npx prettier --write src",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "bootstrap": "^5.3.3",
     "core-js": "^3.8.3",
     "vue": "^3.2.13"
   },
