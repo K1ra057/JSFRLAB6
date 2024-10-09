@@ -110,14 +110,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent, ref, onMounted } from "vue";
 import { Validator } from "@/misc/Validator";
 import { Participant } from "@/models/Participant";
 
 export default defineComponent({
   name: "LotteryApp",
   setup() {
-    const today = new Date().toISOString().split("T")[0]; // Current date
+    const today = new Date().toISOString().split("T")[0];
     const newParticipant = ref<Participant>({
       name: "",
       dateOfBirth: "",
@@ -126,38 +126,7 @@ export default defineComponent({
     });
 
     // Participants
-    const participants = ref<Participant[]>([
-      {
-        name: "John Doe",
-        dateOfBirth: "1990-01-01",
-        email: "john@example.com",
-        phoneNumber: "+1234567890",
-      },
-      {
-        name: "Jane Smith",
-        dateOfBirth: "1985-05-15",
-        email: "jane@example.com",
-        phoneNumber: "+1987654321",
-      },
-      {
-        name: "Alice Johnson",
-        dateOfBirth: "1992-03-10",
-        email: "alice@example.com",
-        phoneNumber: "+11234567890",
-      },
-      {
-        name: "Bob Brown",
-        dateOfBirth: "1988-07-22",
-        email: "bob@example.com",
-        phoneNumber: "+19987654321",
-      },
-      {
-        name: "Charlie Green",
-        dateOfBirth: "1995-10-05",
-        email: "charlie@example.com",
-        phoneNumber: "+17654321098",
-      },
-    ]);
+    const participants = ref<Participant[]>([]);
     const winners = ref<Participant[]>([]);
 
     // Error messages
@@ -165,6 +134,18 @@ export default defineComponent({
     const dateError = ref("");
     const emailError = ref("");
     const phoneError = ref("");
+
+    // Load participants from localStorage on component mount
+    onMounted(() => {
+      const storedParticipants = localStorage.getItem("participants");
+      if (storedParticipants) {
+        participants.value = JSON.parse(storedParticipants);
+      }
+    });
+
+    const saveParticipantsToLocalStorage = () => {
+      localStorage.setItem("participants", JSON.stringify(participants.value));
+    };
 
     const registerParticipant = () => {
       nameError.value = Validator.validateName(newParticipant.value.name);
@@ -191,6 +172,9 @@ export default defineComponent({
       newParticipant.value.dateOfBirth = "";
       newParticipant.value.email = "";
       newParticipant.value.phoneNumber = "";
+
+      // Save updated participants list to localStorage
+      saveParticipantsToLocalStorage();
     };
 
     const selectWinner = () => {
@@ -201,12 +185,18 @@ export default defineComponent({
         const winner = participants.value[randomIndex];
         winners.value.push(winner);
         participants.value.splice(randomIndex, 1);
+
+        // Save updated participants list to localStorage
+        saveParticipantsToLocalStorage();
       }
     };
 
     const removeWinner = (index: number) => {
       participants.value.push(winners.value[index]);
       winners.value.splice(index, 1);
+
+      // Save updated participants list to localStorage
+      saveParticipantsToLocalStorage();
     };
 
     return {
