@@ -229,17 +229,32 @@ export default defineComponent({
 
     const selectWinner = () => {
       if (participants.value.length > 0 && winners.value.length < 3) {
-        const randomIndex = Math.floor(
-          Math.random() * participants.value.length
+        let availableParticipants = participants.value.filter(
+          (participant) => !winners.value.includes(participant)
         );
-        const winner = participants.value[randomIndex];
+        if (availableParticipants.length === 0) return; // Якщо більше немає доступних учасників
+
+        const randomIndex = Math.floor(
+          Math.random() * availableParticipants.length
+        );
+        const winner = availableParticipants[randomIndex];
         winners.value.push(winner);
-        participants.value.splice(randomIndex, 1);
       }
     };
 
     const removeWinner = (index: number) => {
-      participants.value.push(winners.value[index]);
+      const winner = winners.value[index];
+      // Перевірка, чи учасник вже є в масиві учасників
+      const alreadyInParticipants = participants.value.some(
+        (participant) => participant.email === winner.email
+      );
+
+      // Додаємо назад до учасників, тільки якщо його немає в масиві
+      if (!alreadyInParticipants) {
+        participants.value.push(winner);
+      }
+
+      // Видаляємо зі списку переможців
       winners.value.splice(index, 1);
     };
 
