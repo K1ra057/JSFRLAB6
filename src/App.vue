@@ -19,7 +19,7 @@
       </div>
       <button
         class="btn btn-primary mt-2"
-        :disabled="winners.length >= 3 || participants.length === 0"
+        :disabled="isWinnerButtonDisabled"
         @click="selectWinner"
       >
         New winner
@@ -28,7 +28,7 @@
 
     <!-- Registration Form -->
     <div class="card">
-      <h3>REGISTER FORM</h3>
+      <h3>Форма реєстрація</h3>
       <p>Please fill in all the fields.</p>
       <form @submit.prevent="registerParticipant" novalidate>
         <div class="form-group">
@@ -116,32 +116,26 @@
       </table>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div v-if="showModal" class="modal">
-      <div class="modal-content">
-        <h4>Confirm Deletion</h4>
-        <p>Are you sure you want to delete this participant?</p>
-        <div class="button-container">
-          <!-- Доданий контейнер для кнопок -->
-          <button @click="deleteParticipant" class="btn btn-danger">
-            Delete
-          </button>
-          <button @click="cancelDeletion" class="btn btn-secondary">
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Modal Component -->
+    <ModalConfirm
+      v-if="showModal"
+      title="Confirm Deletion"
+      message="Are you sure you want to delete this participant?"
+      @confirm="deleteParticipant"
+      @cancel="cancelDeletion"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent, ref, onMounted, computed, watch } from "vue";
 import { Validator } from "@/misc/Validator";
 import { Participant } from "@/models/Participant";
+import ModalConfirm from "@/models/ModalConfirm.vue"; // Імпорт модального компоненту
 
 export default defineComponent({
   name: "LotteryApp",
+  components: { ModalConfirm }, // Реєстрація компоненту
   setup() {
     const today = new Date().toISOString().split("T")[0];
     const newParticipant = ref<Participant>({
@@ -160,12 +154,27 @@ export default defineComponent({
     const showModal = ref(false);
     const participantToDelete = ref<number | null>(null);
 
+    // Завантаження списку учасників з локального сховища при запуску
     onMounted(() => {
       const storedParticipants = localStorage.getItem("participants");
       if (storedParticipants) {
         participants.value = JSON.parse(storedParticipants);
       }
     });
+
+    // Computed для кнопки "New Winner"
+    const isWinnerButtonDisabled = computed(() => {
+      return winners.value.length >= 3 || participants.value.length === 0;
+    });
+
+    // Watcher для збереження змін у локальному сховищі
+    watch(
+      [participants, winners],
+      () => {
+        saveParticipantsToLocalStorage();
+      },
+      { deep: true }
+    );
 
     const confirmRemoveParticipant = (index: number) => {
       participantToDelete.value = index;
@@ -177,7 +186,6 @@ export default defineComponent({
         participants.value.splice(participantToDelete.value, 1);
         participantToDelete.value = null;
         showModal.value = false;
-        saveParticipantsToLocalStorage();
       }
     };
 
@@ -227,16 +235,12 @@ export default defineComponent({
         const winner = participants.value[randomIndex];
         winners.value.push(winner);
         participants.value.splice(randomIndex, 1);
-
-        saveParticipantsToLocalStorage();
       }
     };
 
     const removeWinner = (index: number) => {
       participants.value.push(winners.value[index]);
       winners.value.splice(index, 1);
-
-      saveParticipantsToLocalStorage();
     };
 
     return {
@@ -249,6 +253,7 @@ export default defineComponent({
       phoneError,
       today,
       showModal,
+      isWinnerButtonDisabled,
       confirmRemoveParticipant,
       deleteParticipant,
       cancelDeletion,
@@ -264,37 +269,7 @@ export default defineComponent({
 /** {
   border: solid green 1px;
 }*/
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 
-.modal-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  width: 300px; /* Додайте ширину модального вікна */
-  text-align: center; /* Центруємо текст */
-}
-
-.modal-content button {
-  width: 120px; /* Фіксована ширина кнопок */
-  margin: 0 5px; /* Невеликий відступ між кнопками */
-}
-
-.modal-content .button-container {
-  display: flex;
-  justify-content: center; /* Центруємо кнопки */
-  margin-top: 20px; /* Відступ зверху для кнопок */
-}
 .lottery-app {
   display: grid;
   grid-template-columns: 1fr;
