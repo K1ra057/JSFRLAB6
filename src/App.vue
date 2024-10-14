@@ -1,143 +1,38 @@
 <template>
   <div class="lottery-app">
-    <!-- Winners Block -->
-    <div class="card">
-      <div class="d-flex">
-        <div class="winner-tags gray-border">
-          <span
-            v-for="(winner, index) in winners"
-            :key="index"
-            class="badge blue"
-          >
-            {{ winner.name }}
-            <button @click="removeWinner(index)" class="btn btn-sm btn-danger">
-              &times;
-            </button>
-          </span>
-          <span class="badge">Winners</span>
-        </div>
-      </div>
-      <button
-        class="btn btn-primary mt-2"
-        :disabled="isWinnerButtonDisabled"
-        @click="selectWinner"
-      >
-        New winner
-      </button>
-    </div>
-
-    <!-- Registration Form -->
-    <div class="card">
-      <h3>Форма реєстрація</h3>
-      <p>Please fill in all the fields.</p>
-      <form @submit.prevent="registerParticipant" novalidate>
-        <div class="form-group">
-          <label>Name</label>
-          <input
-            v-model="newParticipant.name"
-            type="text"
-            class="form-control"
-            placeholder="Enter user name"
-            :class="{ 'is-invalid': nameError }"
-            required
-          />
-          <div class="text-danger" v-if="nameError">{{ nameError }}</div>
-        </div>
-        <div class="form-group">
-          <label>Date of Birth</label>
-          <input
-            v-model="newParticipant.dateOfBirth"
-            type="date"
-            class="form-control"
-            :max="today"
-            :class="{ 'is-invalid': dateError }"
-            required
-          />
-          <div class="text-danger" v-if="dateError">{{ dateError }}</div>
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input
-            v-model="newParticipant.email"
-            type="email"
-            class="form-control"
-            placeholder="Enter email"
-            :class="{ 'is-invalid': emailError }"
-            required
-          />
-          <div class="text-danger" v-if="emailError">{{ emailError }}</div>
-        </div>
-        <div class="form-group">
-          <label>Phone number</label>
-          <input
-            v-model="newParticipant.phoneNumber"
-            type="tel"
-            class="form-control"
-            placeholder="Enter phone number"
-            :class="{ 'is-invalid': phoneError }"
-            required
-          />
-          <div class="text-danger" v-if="phoneError">{{ phoneError }}</div>
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-      </form>
-    </div>
-
-    <!-- Participants Table -->
-    <div class="card">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Date of Birth</th>
-            <th>Email</th>
-            <th>Phone number</th>
-            <th>Delete Participant</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(participant, index) in participants" :key="index">
-            <td>{{ index + 1 }}</td>
-            <td>{{ participant.name }}</td>
-            <td>{{ participant.dateOfBirth }}</td>
-            <td>{{ participant.email }}</td>
-            <td>{{ participant.phoneNumber }}</td>
-            <td class="d-flex justify-content-center align-items-center">
-              <button
-                @click="confirmRemoveParticipant(index)"
-                class="btn btn-danger btn-sm"
-              >
-                &times;
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Modal Component -->
-    <ModalConfirm
-      v-if="showModal"
-      title="Confirm Deletion"
-      message="Are you sure you want to delete this participant?"
-      @confirm="deleteParticipant"
-      @cancel="cancelDeletion"
+    <WinnersBlock
+      :winners="winners"
+      :participants="participants"
+      @remove-winner="removeWinner"
+      @select-winner="selectWinner"
     />
+    <RegistrationForm
+      :newParticipant="newParticipant"
+      :nameError="nameError"
+      :dateError="dateError"
+      :emailError="emailError"
+      :phoneError="phoneError"
+      :today="today"
+      @register-participant="registerParticipant"
+    />
+    <ParticipantsTable :participants="participants" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, watch } from "vue";
-import { Validator } from "@/misc/Validator";
+import { defineComponent, ref } from "vue";
 import { Participant } from "@/models/Participant";
-import ModalConfirm from "@/models/ModalConfirm.vue"; // Імпорт модального компоненту
+import WinnersBlock from "@/components/WinnersBlock.vue";
+import RegistrationForm from "@/components/RegistrationForm.vue";
+import ParticipantsTable from "@/components/ParticipantsTable.vue";
+import { Validator } from "@/misc/Validator";
+import MyStorage from "@/misc/MyStorage";
 
 export default defineComponent({
-  name: "LotteryApp",
-  components: { ModalConfirm }, // Реєстрація компоненту
+  name: "App",
+  components: { WinnersBlock, RegistrationForm, ParticipantsTable },
   setup() {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0]; // Current date
     const newParticipant = ref<Participant>({
       name: "",
       dateOfBirth: "",
@@ -145,68 +40,30 @@ export default defineComponent({
       phoneNumber: "",
     });
 
-    const participants = ref<Participant[]>([]);
+    // Participants
+    const participants = ref<Participant[]>(MyStorage.getParticipants());
     const winners = ref<Participant[]>([]);
+
+    // Error messages
     const nameError = ref("");
     const dateError = ref("");
     const emailError = ref("");
     const phoneError = ref("");
-    const showModal = ref(false);
-    const participantToDelete = ref<number | null>(null);
 
-    // Завантаження списку учасників з локального сховища при запуску
-    onMounted(() => {
-      const storedParticipants = localStorage.getItem("participants");
-      if (storedParticipants) {
-        participants.value = JSON.parse(storedParticipants);
+    const registerParticipant = (participantData: Participant) => {
+      if (!participantData) {
+        console.error("participantData is undefined");
+        return;
       }
-    });
 
-    // Computed для кнопки "New Winner"
-    const isWinnerButtonDisabled = computed(() => {
-      return winners.value.length >= 3 || participants.value.length === 0;
-    });
-
-    // Watcher для збереження змін у локальному сховищі
-    watch(
-      [participants, winners],
-      () => {
-        saveParticipantsToLocalStorage();
-      },
-      { deep: true }
-    );
-
-    const confirmRemoveParticipant = (index: number) => {
-      participantToDelete.value = index;
-      showModal.value = true;
-    };
-
-    const deleteParticipant = () => {
-      if (participantToDelete.value !== null) {
-        participants.value.splice(participantToDelete.value, 1);
-        participantToDelete.value = null;
-        showModal.value = false;
-      }
-    };
-
-    const cancelDeletion = () => {
-      showModal.value = false;
-      participantToDelete.value = null;
-    };
-
-    const saveParticipantsToLocalStorage = () => {
-      localStorage.setItem("participants", JSON.stringify(participants.value));
-    };
-
-    const registerParticipant = () => {
-      nameError.value = Validator.validateName(newParticipant.value.name);
+      nameError.value = Validator.validateName(participantData.name);
       dateError.value = Validator.validateDateOfBirth(
-        newParticipant.value.dateOfBirth,
+        participantData.dateOfBirth,
         today
       );
-      emailError.value = Validator.validateEmail(newParticipant.value.email);
+      emailError.value = Validator.validateEmail(participantData.email, false);
       phoneError.value = Validator.validatePhoneNumber(
-        newParticipant.value.phoneNumber
+        participantData.phoneNumber
       );
 
       if (
@@ -218,43 +75,30 @@ export default defineComponent({
         return;
       }
 
-      participants.value.push({ ...newParticipant.value });
-      newParticipant.value.name = "";
-      newParticipant.value.dateOfBirth = "";
-      newParticipant.value.email = "";
-      newParticipant.value.phoneNumber = "";
-
-      saveParticipantsToLocalStorage();
+      participants.value.push(participantData);
+      MyStorage.saveParticipants(participants.value);
+      // Reset the newParticipant object
+      newParticipant.value = {
+        name: "",
+        dateOfBirth: "",
+        email: "",
+        phoneNumber: "",
+      };
     };
 
     const selectWinner = () => {
       if (participants.value.length > 0 && winners.value.length < 3) {
-        let availableParticipants = participants.value.filter(
-          (participant) => !winners.value.includes(participant)
-        );
-        if (availableParticipants.length === 0) return; // Якщо більше немає доступних учасників
-
         const randomIndex = Math.floor(
-          Math.random() * availableParticipants.length
+          Math.random() * participants.value.length
         );
-        const winner = availableParticipants[randomIndex];
+        let winner = participants.value[randomIndex];
         winners.value.push(winner);
+        participants.value.splice(randomIndex, 1);
       }
     };
 
     const removeWinner = (index: number) => {
-      const winner = winners.value[index];
-      // Перевірка, чи учасник вже є в масиві учасників
-      const alreadyInParticipants = participants.value.some(
-        (participant) => participant.email === winner.email
-      );
-
-      // Додаємо назад до учасників, тільки якщо його немає в масиві
-      if (!alreadyInParticipants) {
-        participants.value.push(winner);
-      }
-
-      // Видаляємо зі списку переможців
+      participants.value.push(winners.value[index]);
       winners.value.splice(index, 1);
     };
 
@@ -267,11 +111,6 @@ export default defineComponent({
       emailError,
       phoneError,
       today,
-      showModal,
-      isWinnerButtonDisabled,
-      confirmRemoveParticipant,
-      deleteParticipant,
-      cancelDeletion,
       registerParticipant,
       selectWinner,
       removeWinner,
