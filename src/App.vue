@@ -16,6 +16,16 @@
       @register-participant="registerParticipant"
     />
     <ParticipantsTable :participants="participants" />
+
+    <ModalUnified
+      v-if="isModalVisible"
+      :isVisible="isModalVisible"
+      :participant="selectedParticipant"
+      :mode="modalMode"
+      @update:participant="updateParticipant"
+      @confirm="deleteParticipant"
+      @close="closeModal"
+    />
   </div>
 </template>
 
@@ -25,14 +35,20 @@ import { Participant } from "@/models/Participant";
 import WinnersBlock from "@/components/WinnersBlock.vue";
 import RegistrationForm from "@/components/RegistrationForm.vue";
 import ParticipantsTable from "@/components/ParticipantsTable.vue";
+import ModalUnified from "@/components/ModalUnified.vue";
 import { Validator } from "@/misc/Validator";
 import MyStorage from "@/misc/MyStorage";
 
 export default defineComponent({
   name: "App",
-  components: { WinnersBlock, RegistrationForm, ParticipantsTable },
+  components: {
+    WinnersBlock,
+    RegistrationForm,
+    ParticipantsTable,
+    ModalUnified,
+  },
   setup() {
-    const today = new Date().toISOString().split("T")[0]; // Current date
+    const today = new Date().toISOString().split("T")[0];
     const newParticipant = ref<Participant>({
       name: "",
       dateOfBirth: "",
@@ -40,22 +56,18 @@ export default defineComponent({
       phoneNumber: "",
     });
 
-    // Participants
     const participants = ref<Participant[]>(MyStorage.getParticipants());
     const winners = ref<Participant[]>([]);
+    const selectedParticipant = ref<Participant | null>(null);
+    const isModalVisible = ref(false);
+    const modalMode = ref<"edit" | "confirm">("edit");
 
-    // Error messages
     const nameError = ref("");
     const dateError = ref("");
     const emailError = ref("");
     const phoneError = ref("");
 
     const registerParticipant = (participantData: Participant) => {
-      if (!participantData) {
-        console.error("participantData is undefined");
-        return;
-      }
-
       nameError.value = Validator.validateName(participantData.name);
       dateError.value = Validator.validateDateOfBirth(
         participantData.dateOfBirth,
@@ -77,7 +89,6 @@ export default defineComponent({
 
       participants.value.push(participantData);
       MyStorage.saveParticipants(participants.value);
-      // Reset the newParticipant object
       newParticipant.value = {
         name: "",
         dateOfBirth: "",
@@ -86,13 +97,33 @@ export default defineComponent({
       };
     };
 
+    const updateParticipant = (updatedParticipant: Participant) => {
+      const index = participants.value.findIndex(
+        (p) => p.email === updatedParticipant.email
+      );
+      if (index !== -1) {
+        participants.value[index] = updatedParticipant;
+        MyStorage.saveParticipants(participants.value);
+        closeModal();
+      }
+    };
+
+    const deleteParticipant = () => {
+      if (selectedParticipant.value) {
+        participants.value = participants.value.filter(
+          (p) => p.email !== selectedParticipant.value?.email
+        );
+        MyStorage.saveParticipants(participants.value);
+        closeModal();
+      }
+    };
+
     const selectWinner = () => {
       if (participants.value.length > 0 && winners.value.length < 3) {
         const randomIndex = Math.floor(
           Math.random() * participants.value.length
         );
-        let winner = participants.value[randomIndex];
-        winners.value.push(winner);
+        winners.value.push(participants.value[randomIndex]);
         participants.value.splice(randomIndex, 1);
       }
     };
@@ -102,18 +133,43 @@ export default defineComponent({
       winners.value.splice(index, 1);
     };
 
+    const openEditModal = (participant: Participant) => {
+      selectedParticipant.value = participant;
+      modalMode.value = "edit";
+      isModalVisible.value = true;
+    };
+
+    const openConfirmModal = (participant: Participant) => {
+      selectedParticipant.value = participant;
+      modalMode.value = "confirm";
+      isModalVisible.value = true;
+    };
+
+    const closeModal = () => {
+      isModalVisible.value = false;
+      selectedParticipant.value = null;
+    };
+
     return {
+      today,
       newParticipant,
       participants,
       winners,
+      selectedParticipant,
+      isModalVisible,
+      modalMode,
       nameError,
       dateError,
       emailError,
       phoneError,
-      today,
       registerParticipant,
+      updateParticipant,
+      deleteParticipant,
       selectWinner,
       removeWinner,
+      openEditModal,
+      openConfirmModal,
+      closeModal,
     };
   },
 });

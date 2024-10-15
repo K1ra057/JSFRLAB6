@@ -6,7 +6,7 @@ module.exports = defineConfig({
   configureWebpack: {
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'src'), // Додаємо псевдонім для src
+        "@": path.resolve(__dirname, "src"), // Додаємо псевдонім для src
       },
     },
   },
