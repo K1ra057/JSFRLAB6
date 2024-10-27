@@ -39,39 +39,36 @@
           <td>{{ participant.email }}</td>
           <td>{{ participant.phoneNumber }}</td>
           <td>
-            <button @click="showEditModal(participant)">Edit</button>
+            <button @click="openModal(participant, 'edit')">Edit</button>
           </td>
           <td>
-            <button @click="openDeleteModal(participant)">Delete</button>
+            <button
+              class="delete-button"
+              @click="openModal(participant, 'confirm')"
+            >
+              Delete
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <ModalComponent
+    <ModalUnified
       v-if="isModalVisible"
       :isVisible="isModalVisible"
       :participant="selectedParticipant"
+      :mode="modalMode"
       @update:participant="updateParticipant"
-      @create="createParticipant"
-      @close="closeModal"
-    />
-
-    <ModalConfirm
-      v-if="isDeleteModalVisible"
-      :isVisible="isDeleteModalVisible"
-      :participant="selectedParticipant"
       @confirm="deleteParticipant"
-      @close="closeDeleteModal"
+      @close="closeModal"
     />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from "vue";
+import { defineComponent, ref, computed, watch } from "vue";
 import { Participant } from "@/models/Participant";
-import ModalComponent from "@/components/ModalComponent.vue";
-import ModalConfirm from "@/components/ModalConfirm.vue";
+import ModalUnified from "@/components/ModalUnified.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import MyStorage from "@/misc/MyStorage";
 
@@ -85,41 +82,37 @@ export default defineComponent({
     },
   },
   components: {
-    ModalComponent,
-    ModalConfirm,
+    ModalUnified,
     SearchBar,
   },
   setup(props) {
     const isModalVisible = ref(false);
-    const isDeleteModalVisible = ref(false);
     const selectedParticipant = ref<Participant | null>(null);
+    const modalMode = ref<"edit" | "confirm">("edit");
     const localParticipants = ref<Participant[]>([...props.participants]);
     const searchTerm = ref("");
-
+    watch(
+      () => props.participants,
+      (newParticipants) => {
+        localParticipants.value = [...newParticipants];
+      },
+      { immediate: true } // Викликає спостерігача одразу після створення компонента
+    );
     const filteredParticipants = computed(() => {
       return localParticipants.value.filter((participant) =>
         participant.name.toLowerCase().includes(searchTerm.value.toLowerCase())
       );
     });
 
-    const showEditModal = (participant: Participant) => {
+    const openModal = (participant: Participant, mode: "edit" | "confirm") => {
       selectedParticipant.value = { ...participant };
+      modalMode.value = mode;
       isModalVisible.value = true;
     };
 
     const closeModal = () => {
       isModalVisible.value = false;
       selectedParticipant.value = null;
-    };
-
-    const openDeleteModal = (participant: Participant) => {
-      selectedParticipant.value = { ...participant };
-      isDeleteModalVisible.value = true;
-    };
-
-    const closeDeleteModal = () => {
-      selectedParticipant.value = null;
-      isDeleteModalVisible.value = false;
     };
 
     const updateParticipant = (updatedParticipant: Participant) => {
@@ -130,11 +123,6 @@ export default defineComponent({
         localParticipants.value[index] = updatedParticipant;
         MyStorage.saveParticipants(localParticipants.value);
       }
-    };
-
-    const createParticipant = (newParticipant: Participant) => {
-      localParticipants.value.push(newParticipant);
-      MyStorage.saveParticipants(localParticipants.value);
       closeModal();
     };
 
@@ -145,8 +133,8 @@ export default defineComponent({
           (participant) => participant.email !== emailToDelete
         );
         MyStorage.saveParticipants(localParticipants.value);
-        closeDeleteModal();
       }
+      closeModal();
     };
 
     const sortByName = () => {
@@ -167,15 +155,12 @@ export default defineComponent({
 
     return {
       isModalVisible,
-      isDeleteModalVisible,
       selectedParticipant,
+      modalMode,
       filteredParticipants,
-      showEditModal,
+      openModal,
       closeModal,
-      openDeleteModal,
-      closeDeleteModal,
       updateParticipant,
-      createParticipant,
       deleteParticipant,
       sortByName,
       sortByDateOfBirth,
@@ -194,5 +179,17 @@ export default defineComponent({
 }
 .sort-button i {
   font-size: 16px;
+}
+.delete-button {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  background-color: darkred;
 }
 </style>

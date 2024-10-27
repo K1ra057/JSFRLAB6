@@ -31,7 +31,7 @@
         :errorMessage="phoneError"
         :validate="validatePhoneNumber"
       />
-      <ActionButton text="Save" type="submit" :disabled="hasValidationErrors" />
+      <ActionButton text="Save" type="submit" @click="registerParticipant" />
     </form>
   </div>
 </template>
